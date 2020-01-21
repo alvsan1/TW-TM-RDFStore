@@ -12,7 +12,7 @@ module-type: startup
 
 exports.name = "knowledge";
 exports.platforms = ["node"];
-exports.after = ["lhmacro"];
+exports.after = ["lhmacro_no"];
 exports.synchronous = true;
 
 exports.startup = function(callback) {
@@ -24,33 +24,38 @@ exports.startup = function(callback) {
 	    headers: { "Accept": "application/sparql-results+json, */*;q=0.5" } // request headers 
 	};
 
-	//client.get("http://10.0.3.15:8080/rdf4j-server/repositories/snomed02?query=prefix%20rdfs%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2F2000%2F01%2Frdf-schema%23%3E%0Aprefix%20scti%3A%20%3Chttp%3A%2F%2Fsnomed.info%2Fid%2F%3E%0Aselect%20%3Fconcept%0Awhere%20%7B%20%3Fconcept%20rdfs%3AsubClassOf%20scti%3A138875005%20%7D",args, function (data, response) {
-    
-    console.log("Entro");
-
-
     var config = JSON.parse($tw.wiki.getTiddlerAsJson("Initial Config"));
+
 
     //client.get("http://10.0.3.15:8080/rdf4j-server/repositories/snomed02?query=PREFIX+rdfs%3A+%3Chttp%3A%2F%2Fwww.w3.org%2F2000%2F01%2Frdf-schema%23%3E%0APREFIX+sctf%3A+%3Chttp%3A%2F%2Fsnomed.info%2Ffield%2F%3E%0APREFIX+scti%3A+%3Chttp%3A%2F%2Fsnomed.info%2Fid%2F%3E%0ASelect+%3Fconcept+%3Fdescription%0Awhere+%7B+%3Fconcept+sctf%3ADescription.term.en-us.preferred+%3Fdescription+.%0A++++++++%3Fconcept+rdfs%3AsubClassOf+scti%3A138875005+++%7D",args, function (data, response) {
 	//client.get(config.rdfstorage + "?query=" + encodeURIComponent($tw.wiki.getTiddler("$:/linekedhealth/snomedct_l1_v1").fields.text),args, function (data, response) {	
-    client.get("http://192.168.0.108:8080/rdf4j-server/repositories/snomedct?query=" + encodeURIComponent($tw.wiki.getTiddler("$:/linekedhealth/snomedct_l1_v1").fields.text),args, function (data, response) {	//acca    
+   
+    client.get(config.rdfstorage+"?query=" + encodeURIComponent($tw.wiki.getTiddler(config.sparqll1).fields.text),args, function (data, response) {	
 
-    	    var nodeView = {title: "SnomedCT", concepts: JSON.stringify(JSON.parse(data).results.bindings), newView: true };
+    	    var nodeView = {title: config.nameConcept, concepts: JSON.stringify(JSON.parse(data).results.bindings), newView: true };
     		$tw.wiki.addTiddler(nodeView);
     	    
     	    //Pensar en un arranque mas General desde un tiddly
-    	    var nodeSnCT = {title: config.initialConcept ,label: "SnomedCT"};    
+    	    var nodeSnCT = {title: config.initialConcept ,label: config.nameConcept};    
     		$tw.wiki.addTiddler(nodeSnCT);//acca    
-    
-    
+
+
 
     		$tw.wiki.addEventListener("change",function(changes) {
-    			/*console.log("---------------------------------------------/n");
-    			JSON.parse(JSON.stringify(changes)).forEach( function (nodeName) {
-    			console.log(JSON.parse(JSON.stringify(changes))["SnomedCT"]);
-    			}
-    			console.log("---------------------------------------------/n");
-    	*/	
+            //console.log("---------------------------------------------/n");
+            //console.log(changes);     
+            //console.log(JSON.stringify(changes));
+            Object.keys(changes).forEach(item => {
+                if ( JSON.parse($tw.wiki.getTiddlerAsJson(item)).initResearch == "true"){
+                    console.log("initResearch");
+
+                }       
+            });
+    			
+    			
+
+               //console.log("---------------------------------------------/n");
+    		    
     			if ( JSON.parse(JSON.stringify(changes))["$:/plugins/felixhayashi/tiddlymap/misc/defaultViewHolder"] ){
     				console.log("-----------------Actualizando----------------------/n");
     				var vistName = $tw.wiki.getTiddler("$:/plugins/felixhayashi/tiddlymap/misc/defaultViewHolder").fields.text;
@@ -60,29 +65,30 @@ exports.startup = function(callback) {
     				//console.log(JSON.parse(vista)['config.know'] == "true"  );
     				//console.log(JSON.parse(vista)['config.url']);
     				
-    				console.log("-----------------Actualizando----------------------/n");
+    				//console.log("-----------------Actualizando----------------------/n");
     				if (JSON.parse(vista)['config.know'] == "true" ) {
     					$tw.wiki.setText("$:/plugins/felixhayashi/tiddlymap/graph/views/" + vistName,"config.know",0,false,"");
-    					var queryKw = $tw.wiki.getTiddler("$:/linekedhealth/snomedct_l1_v3").fields.text.replace(/##snomedCT##/g,"<"+JSON.parse(vista)['config.url']+">");
+    					var queryKw = $tw.wiki.getTiddler(config.sparqll2).fields.text.replace(/##ConceptTW##/g,"<"+JSON.parse(vista)['config.url']+">");
     					console.log(queryKw);
-    					client.get("http://192.168.0.108:8080/rdf4j-server/repositories/snomedct?query=" + encodeURIComponent(queryKw),args, function (dataV, responseV) {	
-    						console.log("-----------------2Do nivel----------------------/n");
-    						
-    						console.log("-----------------JSON.parse(responseV)----------------------/n");
-    						console.log(responseV);//acca    
-
-    						console.log("-----------------JSON.parse(dataV)----------------------/n");
-    						console.log(JSON.parse(dataV));//acca    
-    
-    
-
-    						console.log("-----------------JSON.parse(dataV).results.bindings----------------------/n");
-    						console.log(JSON.parse(dataV).results.bindings);//acca    
-
-    						console.log("-----------------JSON.parse(dataV).results.bindings----------------------/n");					
-    						console.log(JSON.stringify(JSON.parse(dataV).results.bindings));//acca    
-
-    						console.log("-----------------2Do nivel----------------------/n");
+    					
+                        client.get(config.rdfstorage+ "?query=" + encodeURIComponent(queryKw),args, function (dataV, responseV) {	
+    						//console.log("-----------------2Do nivel----------------------/n");
+//    						
+    						//console.log("-----------------JSON.parse(responseV)----------------------/n");
+    						//console.log(responseV);//acca    
+//
+    						//console.log("-----------------JSON.parse(dataV)----------------------/n");
+    						//console.log(JSON.parse(dataV));//acca    
+//    
+//    
+//
+    						//console.log("-----------------JSON.parse(dataV).results.bindings----------------------/n");
+    						//console.log(JSON.parse(dataV).results.bindings);//acca    
+//
+    						//console.log("-----------------JSON.parse(dataV).results.bindings----------------------/n");					
+    						//console.log(JSON.stringify(JSON.parse(dataV).results.bindings));//acca    
+//
+    						//console.log("-----------------2Do nivel----------------------/n");
     						var nodeKw = { title: "Kn__" + JSON.parse(vista)['config.url'] , concepts: JSON.stringify(JSON.parse(dataV).results.bindings), newkn: true };
     						$tw.wiki.addTiddler(nodeKw);
     	     

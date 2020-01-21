@@ -65,6 +65,41 @@ exports.startup = function(callback) {
 			return node;
 		}
 
+		var nodeResearch = $tw.wiki.filterTiddlers("[research[true]]");
+		nodeResearch.forEach( function (nodeName) {
+            var nodeJSON = $tw.wiki.getTiddlerAsJson(nodeName);
+            if ( JSON.parse(nodeJSON).research ){
+                console.log(nodeJSON);
+                console.log("-----------------Actualizando   Research----------------------/n");
+
+                //["research"];
+
+                //Create Environment Research
+                var labelResearch = JSON.parse(nodeJSON).labelresearch;
+                var titleResearch = JSON.parse(nodeJSON).title;
+                var newViewResearch = new $tm.ViewAbstraction( labelResearch, { isCreate: true});
+                newViewResearch.setConfig({physics_mode: true });
+
+                $tw.wiki.setText(titleResearch,"titleResearch",0,labelResearch,"");
+                //$tw.wiki.getTiddler("$:/linekedhealth/research_view");
+                $tw.wiki.setText(titleResearch,"text",0,$tw.wiki.getTiddler("$:/linekedhealth/research_view").fields.text,"");
+                $tw.wiki.setText(titleResearch,"research",0,"false","");
+
+
+
+
+
+
+
+
+                /*
+                newView.addNode( node );
+                newView.addPlaceholder( node );
+                newView.saveNodePosition(node);
+                */
+           	}
+        });
+
 		
 		var vistasL2 = $tw.wiki.filterTiddlers("[newkn[true]]");
 		vistasL2.forEach( function (nodeName) {

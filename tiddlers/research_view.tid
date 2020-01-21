@@ -1,0 +1,14 @@
+title: $:/linekedhealth/research_view
+
+\define my-actions()
+       <$macrocall $name="research" titleResearch={{!!title}} view={{!!titleresearch}}/>	
+\end
+
+
+<$tiddlymap view=<<view-name>> editor="advanced" height="450px"></$tiddlymap>
+
+<$button actions=<<my-actions>> >
+
+Research!
+
+</$button>
