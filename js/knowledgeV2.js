@@ -5,8 +5,6 @@ module-type: startup
 
 \*/
 
-var jsonld = require('jsonld');
-
 
 ( function(){ 
 
@@ -16,6 +14,7 @@ exports.name = "knowledgeV2";
 exports.platforms = ["node"];
 exports.after = ["lhmacro"];
 exports.synchronous = true;
+
 
 exports.startup = function(callback) {
 
@@ -37,19 +36,34 @@ exports.startup = function(callback) {
     client.get(config.rdfstorage+"?query=" + encodeURIComponent($tw.wiki.getTiddler(config.sparqll1).fields.text),args, function (data, response) { 
 
             var jsonldresponse = JSON.parse(data);
+
+
+            var nodeView = {title: config.nameConcept, concepts: JSON.stringify(JSON.parse(data)), newView: true };
+            $tw.wiki.addTiddler(nodeView);
             
+
             /*
-            for(var nodeName in jsonldresponse) {
-                for(var attributename in jsonldresponse[nodeName]){
-                    console.log(attributename+": "+jsonldresponse[nodeName][attributename])
-                }
-            };*/
+            //Pensar en un arranque mas General desde un tiddly
+            var initialKnowledge = {title: config.initialConcept ,label: config.nameConcept};    
+            $tw.wiki.addTiddler(initialKnowledge);
+            */
+
+    });
+
+
+           /*
 
 
             Object.keys(jsonldresponse).forEach( function(param , index) {
                 console.log(jsonldresponse[param]);
                 console.log(index);
-            });
+
+
+                toTiddlyKnow(jsonldresponse[param]);
+
+
+
+            });*/
 
             //var nodeView = {title: config.nameConcept, concepts: JSON.stringify(JSON.parse(data).results.bindings), newView: true };
             //$tw.wiki.addTiddler(nodeView);
@@ -105,7 +119,7 @@ exports.startup = function(callback) {
       });
       */
 
-  });
+  
 
 
 }})();
