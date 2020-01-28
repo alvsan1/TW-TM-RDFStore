@@ -21,14 +21,9 @@ exports.after = ["story"];
 exports.synchronous = true;
 
 
-/*
-* Applay the sentence in tilddyWiki and tiddlyMaps, construed by (id, property, object).
-* @param {string} id - The id de subject in sentence.
-* @param {string} property - The property de subject in sentence.
-* @param {string} object - The object de subject in sentence.
-*/
-function sentenceProcess(id , property , object){
-
+function nodeIdResource(id){
+	console.log("**************");
+	console.log(id);
 	var nodeId = $tm.adapter.getId(id);
 	
 	/*
@@ -51,13 +46,49 @@ function sentenceProcess(id , property , object){
 		** Assign id of TiddlyMaps the id node and return the node.
 		*/
 		nodeId = $tm.adapter.assignId(id);
+
+
+		//Create vist and insert the node in the new vist.
+		var label = id.replace(/.*\/(.*)/g,"$1");
+		var newView = new $tm.ViewAbstraction(label,{ isCreate: true});
+		newView.setConfig({physics_mode: true, know: true, url: id });
+
+		var node = $tm.adapter.selectNodeById(nodeId);
+		node.x = 0;
+		node.y = 0;
+		newView.addNode( node );
+		newView.addPlaceholder( node );
+		newView.saveNodePosition(node);
+
+
+
+		var nodosvista = myView.getNodeData();	    
+		nodosvista[nodeId]['open-view'] = id;
+		myView.saveNodeData(nodosvista);
+
+
+
+
 	}
+	return nodeId;
+}
+
+/*
+* Applay the sentence in tilddyWiki and tiddlyMaps, construed by (id, property, object).
+* @param {string} id - The id de subject in sentence.
+* @param {string} property - The property de subject in sentence.
+* @param {string} object - The object de subject in sentence.
+*/
+function sentenceProcess(id , property , object){
+
+	var nodeId = nodeIdResource(id);
 	
 	switch( property){
 		case "http://www.w3.org/2000/01/rdf-schema#comment": 
+			//podria ser definido como un js independiente.
 			var textComment = "";
 			object.forEach( function( ocommept ){
-				textComment += "# " + ocommept + " <br>";
+				textComment += "# " + ocommept["@value"] + " <br>";
 			});
 			$tw.wiki.setText(id,"comments",0,textComment,"")
 			break;
@@ -65,27 +96,42 @@ function sentenceProcess(id , property , object){
 			let nodeLabel = object[0]["@value"];
 			$tw.wiki.setText(id,"label",0,nodeLabel,"");
 
-			var nodeView = $tm.adapter.selectNodeById(nodeId);
-
-
-			var node = $tm.adapter.selectNodeById(nodeId);
-			node.x = 0;
-			node.y = 0;
-			var newView = new $tm.ViewAbstraction(nodeLabel,{ isCreate: true});
-			newView.setConfig({physics_mode: true, know: true, url: id });
-
-			newView.addNode( node );
-			newView.addPlaceholder( node );
-			newView.saveNodePosition(node);
-
-			var nodosvista = newView.getNodeData();    
-			nodosvista[nodeId]['open-view'] = id;
-			newView.saveNodeData(nodosvista);
-
 			break;
 		case "http://www.w3.org/2000/01/rdf-schema#subClassOf" :
-			console.log("--------------------subClassOf-----------------");
-			
+
+			var nodeObjectId = nodeIdResource(object[0]["@id"]);
+			var nodeObject = $tm.adapter.selectNodeById(nodeObjectId);
+			nodeObject.x = 0;
+			nodeObject.y = 0;
+
+			var label = id.replace(/.*\/(.*)/g,"$1");
+			var viewSubject = new $tm.ViewAbstraction(label,{ isCreate: true});
+			viewSubject.addNode( nodeObject );
+			viewSubject.addPlaceholder( nodeObject );
+			viewSubject.saveNodePosition(nodeObject);
+
+			var nodosvista = viewSubject.getNodeData();	    
+			nodosvista[nodeObjectId]['open-view'] = object;
+			viewSubject.saveNodeData(nodosvista);
+
+
+
+
+			var toWL = [];
+			toWL[object[0]["@id"]] = true;
+			var typeWL = [];
+			typeWL["rdfs:subClassOf"] = true;
+			var listE = $tm.adapter.getEdges( id ,toWL, typeWL);
+
+
+			if ( Object.keys(listE).length == 0 ) {
+				//var edgeLabel = ct.property.value.replace(/.*#(.*)/g,"$1");
+				//var edge = { from: nodeOId, to: nodeId, label: edgeLabel, type: ct.property.value};
+				var edge = { from: nodeObjectId, to: nodeId, label: "subClassOf", type: "rdfs:subClassOf"};
+				$tw.wiki.addTiddler(edge);
+				$tm.adapter.insertEdge(edge);
+			}
+
 			break;
 		default:
 			console.log("--------------------Default-----------------");
