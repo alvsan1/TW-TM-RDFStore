@@ -30,7 +30,7 @@ function nodeIdResource(id){
 	if ( typeof  nodeId === "undefined" ) {
 		var nodeView = { title: id , 
 						 know: true,
-						 text: $tw.wiki.getTiddler("$:/linekedhealth/concept_view").fields.text , 
+						 text: $tw.wiki.getTiddler("$:/linekedhealth/concept_viewV2").fields.text , 
 						 term: "",								 
 						 state: "$:/state/" + id,
 						 default: "$(currentTiddler)"
