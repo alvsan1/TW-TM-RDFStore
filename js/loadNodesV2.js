@@ -22,8 +22,6 @@ exports.synchronous = true;
 
 
 function nodeIdResource(id){
-	console.log("**************");
-	console.log(id);
 	var nodeId = $tm.adapter.getId(id);
 	
 	/*
@@ -62,16 +60,68 @@ function nodeIdResource(id){
 
 
 
-		var nodosvista = myView.getNodeData();	    
+		var nodosvista = newView.getNodeData();	    
 		nodosvista[nodeId]['open-view'] = id;
-		myView.saveNodeData(nodosvista);
+		newView.saveNodeData(nodosvista);
 
 
-
+		newView.setConfig({physics_mode: true});
 
 	}
 	return nodeId;
 }
+
+
+
+/*
+* 
+*/
+function addObjectInSubjectView( subject, property, object){
+	//Get the tilddy resource object
+	let nodeObjectId = nodeIdResource(object["@id"]);
+	let nodeObject = $tm.adapter.selectNodeById(nodeObjectId);
+
+	//Set la x y del nodo antes de agregarlo en la vista
+	//Resta investigar como impacata en otras vistas cuadno 
+	nodeObject.x = 0;
+	nodeObject.y = 0;
+
+	/*
+	* Get the resourse's label and insert node in subject view
+	*/
+	let label = subject.replace(/.*\/(.*)/g,"$1");
+	let viewSubject = new $tm.ViewAbstraction(label,{ isCreate: true});
+	viewSubject.addNode( nodeObject );
+	viewSubject.addPlaceholder( nodeObject );
+	viewSubject.saveNodePosition( nodeObject );
+
+	let nodosvista = viewSubject.getNodeData();	    
+	nodosvista[nodeObjectId]['open-view'] = object;
+	viewSubject.saveNodeData(nodosvista);
+
+
+	let toWL = [];
+	toWL[object["@id"]] = true;
+	let typeWL = [];
+	var propertyLabel = property.replace(/.*\.(.*)$/g,"$1");		
+	//typeWL[propertyLabel] = true;
+	typeWL[property] = true;
+	let listE = $tm.adapter.getEdges( subject ,toWL, typeWL);
+
+
+	//No set label
+	if ( Object.keys(listE).length == 0 ) {
+		//var propertyLabel = property.replace(/.*\.(.*)/g,"$1");
+		console.log("++++++++++++++++++++++++ propertyLabel ++++++++++++++++++");
+		console.log(nodeObjectId + " +++++ " + propertyLabel + " +++++ " + subject );
+		let edge = { from: nodeIdResource(subject), to: nodeObjectId, type: property, label: propertyLabel};
+		$tw.wiki.addTiddler(edge);
+		$tm.adapter.insertEdge(edge);
+		$tw.wiki.setText("$:/plugins/felixhayashi/tiddlymap/graph/edgeTypes/"+property,"label",0,propertyLabel,"");
+	}
+
+}
+
 
 /*
 * Applay the sentence in tilddyWiki and tiddlyMaps, construed by (id, property, object).
@@ -79,9 +129,9 @@ function nodeIdResource(id){
 * @param {string} property - The property de subject in sentence.
 * @param {string} object - The object de subject in sentence.
 */
-function sentenceProcess(id , property , object){
+function sentenceProcess(subject , property , object){
 
-	var nodeId = nodeIdResource(id);
+	var nodeId = nodeIdResource(subject);
 	
 	switch( property){
 		case "http://www.w3.org/2000/01/rdf-schema#comment": 
@@ -90,52 +140,59 @@ function sentenceProcess(id , property , object){
 			object.forEach( function( ocommept ){
 				textComment += "# " + ocommept["@value"] + " <br>";
 			});
-			$tw.wiki.setText(id,"comments",0,textComment,"")
+			$tw.wiki.setText(subject,"comments",0,textComment,"")
 			break;
 		case "http://www.w3.org/2000/01/rdf-schema#label":
 			let nodeLabel = object[0]["@value"];
-			$tw.wiki.setText(id,"label",0,nodeLabel,"");
-
+			$tw.wiki.setText(subject,"label",0,nodeLabel,"");
+			break;
+		case "http://purl.org/dc/elements/1.1/tittle":
+			let nodeDescription = object[0]["@value"];
+			$tw.wiki.setText(subject,"description",0,nodeDescription,"");
 			break;
 		case "http://www.w3.org/2000/01/rdf-schema#subClassOf" :
 
-			var nodeObjectId = nodeIdResource(object[0]["@id"]);
-			var nodeObject = $tm.adapter.selectNodeById(nodeObjectId);
-			nodeObject.x = 0;
-			nodeObject.y = 0;
-
-			var label = id.replace(/.*\/(.*)/g,"$1");
-			var viewSubject = new $tm.ViewAbstraction(label,{ isCreate: true});
-			viewSubject.addNode( nodeObject );
-			viewSubject.addPlaceholder( nodeObject );
-			viewSubject.saveNodePosition(nodeObject);
-
-			var nodosvista = viewSubject.getNodeData();	    
-			nodosvista[nodeObjectId]['open-view'] = object;
-			viewSubject.saveNodeData(nodosvista);
-
-
-
-
-			var toWL = [];
-			toWL[object[0]["@id"]] = true;
-			var typeWL = [];
-			typeWL["rdfs:subClassOf"] = true;
-			var listE = $tm.adapter.getEdges( id ,toWL, typeWL);
-
-
-			if ( Object.keys(listE).length == 0 ) {
-				//var edgeLabel = ct.property.value.replace(/.*#(.*)/g,"$1");
-				//var edge = { from: nodeOId, to: nodeId, label: edgeLabel, type: ct.property.value};
-				var edge = { from: nodeObjectId, to: nodeId, label: "subClassOf", type: "rdfs:subClassOf"};
-				$tw.wiki.addTiddler(edge);
-				$tm.adapter.insertEdge(edge);
-			}
+			addObjectInSubjectView( subject, "http://www.w3.org/2000/01/rdf-schema#subClassOf", object[0])			
 
 			break;
+		case "http://www.w3.org/2000/01/rdf-schema#domain" :
+			object.forEach( function (oparameter){
+				var nodeNew = { title: oparameter["@id"] ,
+									 know: true,
+									 text: $tw.wiki.getTiddler("$:/linekedhealth/parameter_view").fields.text , 
+									 term: "",				
+									 tags: [subject],				 
+									 state: "$:/state/" + oparameter["@id"] ,
+									 default: "$(currentTiddler)"
+									};
+					
+				$tw.wiki.addTiddler(nodeNew);
+			});
+			
+		break;
+		case "http://www.w3.org/2002/07/owl#allValuesFrom" :
+			object.forEach( function (reference){
+				console.log("******************* allValuesFrom "+reference["@id"]);
+				console.log("******************* allValuesFrom "+subject);				
+				//Get the tilddy resource object
+				let nodeObjectId = nodeIdResource(reference["@id"]);
+				let nodeObject = $tm.adapter.selectNodeById(nodeObjectId);
+
+
+				$tw.wiki.setText(reference["@id"],"tags",0,JSON.parse($tw.wiki.getTiddlerAsJson(reference["@id"])).tags + " " +subject,"");				
+				var subjectTo = subject.replace(/(.*)\..*/g,"$1");
+				addObjectInSubjectView( subjectTo, subject, reference);	
+				console.log("******************* allValuesFrom subjectTo "+subjectTo);
+				console.log("******************* allValuesFrom subject "+subject);
+				console.log("******************* allValuesFrom reference "+reference);
+			});
+			
+		break;
+
+
 		default:
 			console.log("--------------------Default-----------------");
-			console.log("id : " + id + ", property : " + property + ", object : " + object);
+			console.log("id : " + subject + ", property : " + property + ", object : " + object);
 	}
 
 
@@ -144,55 +201,28 @@ function sentenceProcess(id , property , object){
 
 exports.startup = function(callback) {
 
+	$tw.wiki.addEventListener("change",function(changes) {
+		var vistas = $tw.wiki.filterTiddlers("[newKn[true]]");
+		vistas.forEach( function (nodeName) {
 
-	var vistas = $tw.wiki.filterTiddlers("[newView[true]]");
-	vistas.forEach( function (nodeName) {
+			var nodeNew = $tw.wiki.getTiddlerAsJson(nodeName);
+			var nodeJson = JSON.parse(nodeNew);
+			var myView = new $tm.ViewAbstraction(nodeJson.title,{ isCreate: true});
+			
 
-		var nodeNew = $tw.wiki.getTiddlerAsJson(nodeName);
-		var nodeJson = JSON.parse(nodeNew);
-		var myView = new $tm.ViewAbstraction(nodeJson.title,{ isCreate: true});
-		
+			JSON.parse(nodeJson.concepts).forEach( function(ct){
 
-		JSON.parse(nodeJson.concepts).forEach( function(ct){
-
-			console.log(ct);
-			console.log(ct["@id"]);
-
-			Object.keys(ct).forEach( function(param , index) {
-				console.log(param);
-			    console.log(ct[param]);
-			    console.log(index);
-
-			    sentenceProcess( ct["@id"], param , ct[param]);
+				
+				Object.keys(ct).forEach( function(param , index) {
+					sentenceProcess( ct["@id"], param , ct[param]);
 
 
 
-			}); 
+				}); 
 
+			});
+			$tw.wiki.deleteTiddler(nodeName);
 		});
-
-
-
-			//var nodeId = $tm.adapter.getId(ct.concept.value);
-//			if ( typeof  nodeId === "undefined" ) {
-//				var nodeView = { label: ct.description.value, 
-//								 title: ct.concept.value , 
-//								 know: true,
-//								 text: $tw.wiki.getTiddler("$:/linekedhealth/concept_view").fields.text , 
-//								 term: "",								 
-//								 state: "$:/state/" + ct.concept.value,
-//								 default: "$(currentTiddler)"
-//								};
-//				$tw.wiki.addTiddler(nodeView);
-//				nodeId = $tm.adapter.assignId(ct.concept.value);
-//			}
-		
-		
-
-
-
-
-
 	});
 };
 

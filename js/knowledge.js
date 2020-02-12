@@ -42,15 +42,15 @@ exports.startup = function(callback) {
 
 
     		$tw.wiki.addEventListener("change",function(changes) {
-            //console.log("---------------------------------------------/n");
-            //console.log(changes);     
-            //console.log(JSON.stringify(changes));
-            Object.keys(changes).forEach(item => {
-                if ( JSON.parse($tw.wiki.getTiddlerAsJson(item)).initResearch == "true"){
-                    console.log("initResearch");
+                //console.log("---------------------------------------------/n");
+                //console.log(changes);     
+                //console.log(JSON.stringify(changes));
+                Object.keys(changes).forEach(item => {
+                    if ( JSON.parse($tw.wiki.getTiddlerAsJson(item)).initResearch == "true"){
+                        console.log("initResearch");
 
-                }       
-            });
+                    }       
+                 });
     			
     			
 
@@ -58,7 +58,7 @@ exports.startup = function(callback) {
     		    
     			if ( JSON.parse(JSON.stringify(changes))["$:/plugins/felixhayashi/tiddlymap/misc/defaultViewHolder"] ){
     				console.log("-----------------Actualizando----------------------/n");
-    				var vistName = $tw.wiki.getTiddler("$:/plugins/felixhayashi/tiddlymap/misc/defaultViewHolder").fields.text;
+    				var viewName = $tw.wiki.getTiddler("$:/plugins/felixhayashi/tiddlymap/misc/defaultViewHolder").fields.text;
     				//console.log(vistName);
     				//console.log("---------------------------------------------/n");
     				var vista = $tw.wiki.getTiddlerAsJson("$:/plugins/felixhayashi/tiddlymap/graph/views/" + vistName);
@@ -67,7 +67,7 @@ exports.startup = function(callback) {
     				
     				//console.log("-----------------Actualizando----------------------/n");
     				if (JSON.parse(vista)['config.know'] == "true" ) {
-    					$tw.wiki.setText("$:/plugins/felixhayashi/tiddlymap/graph/views/" + vistName,"config.know",0,false,"");
+    					$tw.wiki.setText("$:/plugins/felixhayashi/tiddlymap/graph/views/" + viewName,"config.know",0,false,"");
     					var queryKw = $tw.wiki.getTiddler(config.sparqll2).fields.text.replace(/##ConceptTW##/g,"<"+JSON.parse(vista)['config.url']+">");
     					console.log(queryKw);
     					
