@@ -78,7 +78,7 @@ function nodeIdResource(id){
 */
 function addObjectInSubjectView( subject, property, object){
 	//Get the tilddy resource object
-	let nodeObjectId = nodeIdResource(object["@id"]);
+	let nodeObjectId = nodeIdResource(object);
 	let nodeObject = $tm.adapter.selectNodeById(nodeObjectId);
 
 	//Set la x y del nodo antes de agregarlo en la vista
@@ -101,7 +101,7 @@ function addObjectInSubjectView( subject, property, object){
 
 
 	let toWL = [];
-	toWL[object["@id"]] = true;
+	toWL[object] = true;
 	let typeWL = [];
 	var propertyLabel = property.replace(/.*\.(.*)$/g,"$1");		
 	//typeWL[propertyLabel] = true;
@@ -112,8 +112,8 @@ function addObjectInSubjectView( subject, property, object){
 	//No set label
 	if ( Object.keys(listE).length == 0 ) {
 		//var propertyLabel = property.replace(/.*\.(.*)/g,"$1");
-		console.log("++++++++++++++++++++++++ propertyLabel ++++++++++++++++++");
-		console.log(nodeObjectId + " +++++ " + propertyLabel + " +++++ " + subject );
+		//console.log("++++++++++++++++++++++++ propertyLabel ++++++++++++++++++");
+		//console.log(nodeObjectId + " +++++ " + propertyLabel + " +++++ " + subject );
 		let edge = { from: nodeIdResource(subject), to: nodeObjectId, type: property, label: propertyLabel};
 		$tw.wiki.addTiddler(edge);
 		$tm.adapter.insertEdge(edge);
@@ -152,7 +152,7 @@ function sentenceProcess(subject , property , object){
 			break;
 		case "http://www.w3.org/2000/01/rdf-schema#subClassOf" :
 
-			addObjectInSubjectView( subject, "http://www.w3.org/2000/01/rdf-schema#subClassOf", object[0])			
+			addObjectInSubjectView( subject, "http://www.w3.org/2000/01/rdf-schema#subClassOf", object[0]["@id"])			
 
 			break;
 		case "http://www.w3.org/2000/01/rdf-schema#domain" :
@@ -167,13 +167,12 @@ function sentenceProcess(subject , property , object){
 									};
 					
 				$tw.wiki.addTiddler(nodeNew);
+				$tm.adapter.assignId(oparameter["@id"]);
 			});
 			
 		break;
 		case "http://www.w3.org/2002/07/owl#allValuesFrom" :
 			object.forEach( function (reference){
-				console.log("******************* allValuesFrom "+reference["@id"]);
-				console.log("******************* allValuesFrom "+subject);				
 				//Get the tilddy resource object
 				let nodeObjectId = nodeIdResource(reference["@id"]);
 				let nodeObject = $tm.adapter.selectNodeById(nodeObjectId);
@@ -181,14 +180,25 @@ function sentenceProcess(subject , property , object){
 
 				$tw.wiki.setText(reference["@id"],"tags",0,JSON.parse($tw.wiki.getTiddlerAsJson(reference["@id"])).tags + " " +subject,"");				
 				var subjectTo = subject.replace(/(.*)\..*/g,"$1");
-				addObjectInSubjectView( subjectTo, subject, reference);	
-				console.log("******************* allValuesFrom subjectTo "+subjectTo);
-				console.log("******************* allValuesFrom subject "+subject);
-				console.log("******************* allValuesFrom reference "+reference);
+				addObjectInSubjectView( subjectTo, subject, reference["@id"]);	
+				
 			});
 			
 		break;
+		case "http://www.w3.org/2002/07/owl#someValuesFrom" :
+			object.forEach( function (reference){
+				//Get the tilddy resource object
+				let nodeObjectId = nodeIdResource(reference["@id"]);
+				let nodeObject = $tm.adapter.selectNodeById(nodeObjectId);
 
+
+				$tw.wiki.setText(reference["@id"],"tags",0,JSON.parse($tw.wiki.getTiddlerAsJson(reference["@id"])).tags + " " +subject,"");				
+				var subjectTo = subject.replace(/(.*)\..*/g,"$1");
+				addObjectInSubjectView( subjectTo, subject, reference["@id"]);	
+				
+			});
+			
+		break;
 
 		default:
 			console.log("--------------------Default-----------------");

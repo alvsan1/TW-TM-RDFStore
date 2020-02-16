@@ -55,8 +55,8 @@ exports.startup = function(callback) {
                     console.log("-----------------Actualizando----------------------/n");
                     var vistName = $tw.wiki.getTiddler("$:/plugins/felixhayashi/tiddlymap/misc/defaultViewHolder").fields.text;
                     var vista = $tw.wiki.getTiddlerAsJson("$:/plugins/felixhayashi/tiddlymap/graph/views/" + vistName);
-                    if (JSON.parse(vista)['config.know'] == "true" ) {
-                        $tw.wiki.setText("$:/plugins/felixhayashi/tiddlymap/graph/views/" + vistName,"config.know",0,false,"");
+                    if (JSON.parse(vista)['config.know'] == "true" ) {                        
+                        $tw.wiki.setText("$:/plugins/felixhayashi/tiddlymap/graph/views/" + vistName,"config.know",0,"false","");
                         var queryKw = $tw.wiki.getTiddler(config.sparqll2).fields.text.replace(/##ConceptTW##/g,"<"+JSON.parse(vista)['config.url']+">");
                         console.log(queryKw);
                         
