@@ -158,7 +158,7 @@ function sentenceProcess(subject , property , object){
 		case "http://www.w3.org/2000/01/rdf-schema#domain" :
 			object.forEach( function (oparameter){
 				var nodeNew = { title: oparameter["@id"] ,
-									 know: true,
+									 know: false,
 									 text: $tw.wiki.getTiddler("$:/linekedhealth/parameter_view").fields.text , 
 									 term: "",				
 									 tags: [subject],				 
@@ -201,8 +201,8 @@ function sentenceProcess(subject , property , object){
 		break;
 
 		default:
-			console.log("--------------------Default-----------------");
-			console.log("id : " + subject + ", property : " + property + ", object : " + object);
+			//console.log("--------------------Default-----------------");
+			//console.log("id : " + subject + ", property : " + property + ", object : " + object);
 	}
 
 
