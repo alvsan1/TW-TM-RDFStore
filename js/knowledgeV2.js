@@ -89,11 +89,12 @@ exports.startup = function(callback) {
                             client.get(config.rdfstorage+ "?query=" + encodeURIComponent(queryKw),args, function (dataV, responseV) {   
                                 var nodeKw = { title: "Kn__" + changeStory , concepts: JSON.stringify(JSON.parse(dataV)), newkn: true };
                                 $tw.wiki.addTiddler(nodeKw);
-                 
+                                
 
                                 //SI NO SE REQUIERE ACUTALIZACION MEJORA EL USO DE LA HERRAMIENTA
                                 console.log("-----------------Fin 2do nivel----------------------/n");
                             });
+                            $tw.syncer.syncToServer();
                         }
                     }
 

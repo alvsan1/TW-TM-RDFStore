@@ -49,7 +49,7 @@ function nodeIdResource(id){
 		//Create vist and insert the node in the new vist.
 		var label = id.replace(/.*\/(.*)/g,"$1");
 		var newView = new $tm.ViewAbstraction(label,{ isCreate: true});
-		newView.setConfig({physics_mode: true, know: true, url: id });
+		newView.setConfig({physics_mode: true });
 
 		var node = $tm.adapter.selectNodeById(nodeId);
 		node.x = 0;
@@ -80,6 +80,7 @@ function addObjectInSubjectView( subject, property, object){
 	//Get the tilddy resource object
 	let nodeObjectId = nodeIdResource(object);
 	let nodeObject = $tm.adapter.selectNodeById(nodeObjectId);
+	let subjectId = nodeIdResource(subject)
 
 	//Set la x y del nodo antes de agregarlo en la vista
 	//Resta investigar como impacata en otras vistas cuadno 
@@ -103,21 +104,18 @@ function addObjectInSubjectView( subject, property, object){
 	let toWL = [];
 	toWL[object] = true;
 	let typeWL = [];
-	var propertyLabel = property.replace(/.*\.(.*)$/g,"$1");		
 	//typeWL[propertyLabel] = true;
 	typeWL[property] = true;
-	let listE = $tm.adapter.getEdges( subject ,toWL, typeWL);
-
-
-	//No set label
-	if ( Object.keys(listE).length == 0 ) {
+	//console.log(" Object.keys($tm.adapter.getEdges( subject ,toWL, typeWL)).length : " + Object.keys($tm.adapter.getEdges( subject ,toWL, typeWL)).length);
+	if ( Object.keys($tm.adapter.getEdges( subject ,toWL, typeWL)).length == 0 ) {
 		//var propertyLabel = property.replace(/.*\.(.*)/g,"$1");
 		//console.log("++++++++++++++++++++++++ propertyLabel ++++++++++++++++++");
 		//console.log(nodeObjectId + " +++++ " + propertyLabel + " +++++ " + subject );
-		let edge = { from: nodeIdResource(subject), to: nodeObjectId, type: property, label: propertyLabel};
-		$tw.wiki.addTiddler(edge);
+		//let edgeId = $tm.adapter.getId(property);
+		var edge = { from: subjectId, to: nodeObjectId, type: property};
+		$tw.wiki.addTiddler(edge);		
 		$tm.adapter.insertEdge(edge);
-		$tw.wiki.setText("$:/plugins/felixhayashi/tiddlymap/graph/edgeTypes/"+property,"label",0,propertyLabel,"");
+		$tw.wiki.setText("$:/plugins/felixhayashi/tiddlymap/graph/edgeTypes/"+property,"label",0,property.replace(/.*[\.|\#)](.*)$/g,"$1"),"");
 	}
 
 }
@@ -145,6 +143,7 @@ function sentenceProcess(subject , property , object){
 		case "http://www.w3.org/2000/01/rdf-schema#label":
 			let nodeLabel = object[0]["@value"];
 			$tw.wiki.setText(subject,"label",0,nodeLabel,"");
+			$tw.wiki.setText(subject,"caption",0,nodeLabel,"");
 			break;
 		case "http://purl.org/dc/elements/1.1/tittle":
 			let nodeDescription = object[0]["@value"];
@@ -171,33 +170,74 @@ function sentenceProcess(subject , property , object){
 			});
 			
 		break;
-		case "http://www.w3.org/2002/07/owl#allValuesFrom" :
+		case "http://www.w3.org/2002/07/owl#allValuesFrom123" :
 			object.forEach( function (reference){
 				//Get the tilddy resource object
 				let nodeObjectId = nodeIdResource(reference["@id"]);
-				let nodeObject = $tm.adapter.selectNodeById(nodeObjectId);
+				let tags;
+				if ( typeof JSON.parse($tw.wiki.getTiddlerAsJson(reference["@id"])).tags === "undefined" ) {
+					tags = subject;
+				}else{
+					tags = JSON.parse($tw.wiki.getTiddlerAsJson(reference["@id"])).tags + " " +subject
+				}
+				$tw.wiki.setText(reference["@id"],"tags",0,tags,"");				
+				let subjectTo = subject.replace(/(.*)\..*/g,"$1");
 
-
-				$tw.wiki.setText(reference["@id"],"tags",0,JSON.parse($tw.wiki.getTiddlerAsJson(reference["@id"])).tags + " " +subject,"");				
+				let edgeId = $tm.adapter.getId(subject);
+				if ( typeof  edgeId === "undefined" ) {
+					$tm.adapter.assignId(subject);
+				}
+				addObjectInSubjectView( subjectTo, subject, reference["@id"]);	
+				
+			});
+			
+		break;
+		case "http://www.w3.org/2002/07/owl#allValuesFrom" :
+				//Get the tilddy resource object
+				let nodeObjectId = nodeIdResource(object[0]["@id"]);
+				let tags;
+				if ( typeof JSON.parse($tw.wiki.getTiddlerAsJson(object[0]["@id"])).tags === "undefined" ) {
+					tags = subject;
+				}else{
+					tags = JSON.parse($tw.wiki.getTiddlerAsJson(object[0]["@id"])).tags + " " +subject
+				}
+				$tw.wiki.setText(object[0]["@id"],"tags",0,tags,"");				
+				let subjectTo = subject.replace(/(.*)\..*/g,"$1");
+				addObjectInSubjectView( subjectTo, subject, object[0]["@id"]);	
+		break;
+		case "http://www.w3.org/2002/07/owl#someValuesFrom" :
+			object.forEach( function (reference){
+				//Get the tilddy resource object
+				var nodeObjectId = nodeIdResource(reference["@id"]);
+				
+				var tags;
+				if ( typeof JSON.parse($tw.wiki.getTiddlerAsJson(reference["@id"])).tags === "undefined" ) {
+					tags = subject;
+				}else{
+					tags = JSON.parse($tw.wiki.getTiddlerAsJson(reference["@id"])).tags + " " +subject
+				}
+				$tw.wiki.setText(reference["@id"],"tags",0,tags,"");				
 				var subjectTo = subject.replace(/(.*)\..*/g,"$1");
 				addObjectInSubjectView( subjectTo, subject, reference["@id"]);	
 				
 			});
 			
 		break;
-		case "http://www.w3.org/2002/07/owl#someValuesFrom" :
-			object.forEach( function (reference){
-				//Get the tilddy resource object
-				let nodeObjectId = nodeIdResource(reference["@id"]);
-				let nodeObject = $tm.adapter.selectNodeById(nodeObjectId);
-
-
-				$tw.wiki.setText(reference["@id"],"tags",0,JSON.parse($tw.wiki.getTiddlerAsJson(reference["@id"])).tags + " " +subject,"");				
-				var subjectTo = subject.replace(/(.*)\..*/g,"$1");
-				addObjectInSubjectView( subjectTo, subject, reference["@id"]);	
+		case "http://www.w3.org/2000/01/rdf-schema#range" :
+			object.forEach( function (typeNode){
+				var nodeObjectId = nodeIdResource(typeNode["@id"]);
 				
-			});
-			
+				var tags;
+				if ( typeof JSON.parse($tw.wiki.getTiddlerAsJson(typeNode["@id"])).tags === "undefined" ) {
+					tags = subject;
+				}else{
+					tags = JSON.parse($tw.wiki.getTiddlerAsJson(typeNode["@id"])).tags + " " +subject
+				}
+				$tw.wiki.setText(typeNode["@id"],"tags",0,tags,"");				
+				var subjectTo = subject.replace(/(.*)\..*/g,"$1");
+				//addObjectInSubjectView( subjectTo, subject, typeNode["@id"]);
+		});	
+		
 		break;
 
 		default:
@@ -215,8 +255,7 @@ exports.startup = function(callback) {
 		var vistas = $tw.wiki.filterTiddlers("[newKn[true]]");
 		vistas.forEach( function (nodeName) {
 
-			var nodeNew = $tw.wiki.getTiddlerAsJson(nodeName);
-			var nodeJson = JSON.parse(nodeNew);
+			var nodeJson = JSON.parse($tw.wiki.getTiddlerAsJson(nodeName));
 			var myView = new $tm.ViewAbstraction(nodeJson.title,{ isCreate: true});
 			
 
@@ -225,14 +264,36 @@ exports.startup = function(callback) {
 				
 				Object.keys(ct).forEach( function(param , index) {
 					sentenceProcess( ct["@id"], param , ct[param]);
-
-
-
 				}); 
 
 			});
 			$tw.wiki.deleteTiddler(nodeName);
-		});
+
+			//No lo esta borrando del servidor ?
+		}); 
+
+
+		if ( JSON.parse(JSON.stringify(changes))["$:/StoryList"] ){
+                    let changeStory = $tw.utils.parseStringArray(JSON.parse($tw.wiki.getTiddlerAsJson("$:/StoryList")).list)[0];
+                    let patt = /Draft of/;
+                    if ( ! patt.test(changeStory) ){
+                        $tw.wiki.getTiddlerAsJson(changeStory).know;
+                        if (JSON.parse($tw.wiki.getTiddlerAsJson(changeStory))['know'] == "true" ) {
+                        	setTimeout(function() {
+								$tw.syncer.syncFromServer();
+								console.log("++++++++++++++++++++ Sync ++++++++++++++++++");
+							},5000);
+							setTimeout(function() {
+								$tw.syncer.syncFromServer();
+								console.log("++++++++++++++++++++ Sync2 ++++++++++++++++++");
+							},20);
+                        }
+                    }
+        }
+
+/*
+		*/
+				
 	});
 };
 

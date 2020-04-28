@@ -18,6 +18,20 @@ exports.synchronous = true;
 
 exports.startup = function(callback) {
 	
+
+	$tw.wiki.addEventListener("change",function(changes) {
+
+		var vistas = $tw.wiki.filterTiddlers("[newView[true]]");
+		vistas.forEach( function (nodeName) {
+
+			setTimeout(function() {
+				$tw.syncer.syncFromServer();
+				console.log("--------------------- Sync -----------------------")
+			},5000);
+		});
+	});
+
+	
 	// create a new view
 	/*
 	var myView = new $tm.ViewAbstraction("Snomed Ct",{ isCreate: true})
