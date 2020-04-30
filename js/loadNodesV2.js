@@ -129,9 +129,12 @@ function addObjectInSubjectView( subject, property, object){
 */
 function sentenceProcess(subject , property , object){
 
-	var nodeId = nodeIdResource(subject);
+	//var nodeId = nodeIdResource(subject);
 	
 	switch( property){
+		case "@id":
+			nodeIdResource(subject);
+		break;
 		case "http://www.w3.org/2000/01/rdf-schema#comment": 
 			//podria ser definido como un js independiente.
 			var textComment = "";
@@ -145,7 +148,7 @@ function sentenceProcess(subject , property , object){
 			$tw.wiki.setText(subject,"label",0,nodeLabel,"");
 			$tw.wiki.setText(subject,"caption",0,nodeLabel,"");
 			break;
-		case "http://purl.org/dc/elements/1.1/tittle":
+		case "http://purl.org/dc/elements/1.1/tittle": case "http://purl.org/dc/elements/1.1/title" :
 			let nodeDescription = object[0]["@value"];
 			$tw.wiki.setText(subject,"description",0,nodeDescription,"");
 			break;
@@ -156,7 +159,7 @@ function sentenceProcess(subject , property , object){
 			break;
 		case "http://www.w3.org/2000/01/rdf-schema#domain" :
 			object.forEach( function (oparameter){
-				var nodeNew = { title: oparameter["@id"] ,
+				/*var nodeNew = { title: oparameter["@id"] ,
 									 know: false,
 									 text: $tw.wiki.getTiddler("$:/linekedhealth/parameter_view").fields.text , 
 									 term: "",				
@@ -166,35 +169,22 @@ function sentenceProcess(subject , property , object){
 									};
 					
 				$tw.wiki.addTiddler(nodeNew);
-				$tm.adapter.assignId(oparameter["@id"]);
-			});
-			
-		break;
-		case "http://www.w3.org/2002/07/owl#allValuesFrom123" :
-			object.forEach( function (reference){
-				//Get the tilddy resource object
-				let nodeObjectId = nodeIdResource(reference["@id"]);
+				$tm.adapter.assignId(oparameter["@id"]);*/
 				let tags;
-				if ( typeof JSON.parse($tw.wiki.getTiddlerAsJson(reference["@id"])).tags === "undefined" ) {
+				if ( typeof JSON.parse($tw.wiki.getTiddlerAsJson(oparameter["@id"])).tags === "undefined" ) {
 					tags = subject;
 				}else{
-					tags = JSON.parse($tw.wiki.getTiddlerAsJson(reference["@id"])).tags + " " +subject
+					tags = JSON.parse($tw.wiki.getTiddlerAsJson(oparameter["@id"])).tags + " " +subject
 				}
-				$tw.wiki.setText(reference["@id"],"tags",0,tags,"");				
-				let subjectTo = subject.replace(/(.*)\..*/g,"$1");
+				$tw.wiki.setText(oparameter["@id"],"tags",0,tags,"");
+				$tw.wiki.setText(oparameter["@id"],"text",0,$tw.wiki.getTiddler("$:/linekedhealth/parameter_view").fields.text,"");
 
-				let edgeId = $tm.adapter.getId(subject);
-				if ( typeof  edgeId === "undefined" ) {
-					$tm.adapter.assignId(subject);
-				}
-				addObjectInSubjectView( subjectTo, subject, reference["@id"]);	
-				
 			});
 			
 		break;
 		case "http://www.w3.org/2002/07/owl#allValuesFrom" :
 				//Get the tilddy resource object
-				let nodeObjectId = nodeIdResource(object[0]["@id"]);
+				//let nodeObjectId = nodeIdResource(object[0]["@id"]);
 				let tags;
 				if ( typeof JSON.parse($tw.wiki.getTiddlerAsJson(object[0]["@id"])).tags === "undefined" ) {
 					tags = subject;
@@ -208,7 +198,7 @@ function sentenceProcess(subject , property , object){
 		case "http://www.w3.org/2002/07/owl#someValuesFrom" :
 			object.forEach( function (reference){
 				//Get the tilddy resource object
-				var nodeObjectId = nodeIdResource(reference["@id"]);
+				//var nodeObjectId = nodeIdResource(reference["@id"]);
 				
 				var tags;
 				if ( typeof JSON.parse($tw.wiki.getTiddlerAsJson(reference["@id"])).tags === "undefined" ) {
@@ -225,7 +215,7 @@ function sentenceProcess(subject , property , object){
 		break;
 		case "http://www.w3.org/2000/01/rdf-schema#range" :
 			object.forEach( function (typeNode){
-				var nodeObjectId = nodeIdResource(typeNode["@id"]);
+				//var nodeObjectId = nodeIdResource(typeNode["@id"]);
 				
 				var tags;
 				if ( typeof JSON.parse($tw.wiki.getTiddlerAsJson(typeNode["@id"])).tags === "undefined" ) {
@@ -234,7 +224,7 @@ function sentenceProcess(subject , property , object){
 					tags = JSON.parse($tw.wiki.getTiddlerAsJson(typeNode["@id"])).tags + " " +subject
 				}
 				$tw.wiki.setText(typeNode["@id"],"tags",0,tags,"");				
-				var subjectTo = subject.replace(/(.*)\..*/g,"$1");
+				//var subjectTo = subject.replace(/(.*)\..*/g,"$1");
 				//addObjectInSubjectView( subjectTo, subject, typeNode["@id"]);
 		});	
 		
@@ -263,7 +253,8 @@ exports.startup = function(callback) {
 
 				
 				Object.keys(ct).forEach( function(param , index) {
-					sentenceProcess( ct["@id"], param , ct[param]);
+					var subject = ct["@id"];
+					sentenceProcess( subject, param , ct[param]);
 				}); 
 
 			});
