@@ -21,6 +21,28 @@ exports.after = ["story"];
 exports.synchronous = true;
 
 
+function createView(id, label){
+	var newView = new $tm.ViewAbstraction(label,{ isCreate: true});
+	newView.setConfig({physics_mode: true });
+
+	var nodeId = $tm.adapter.getId(id);
+	var node = $tm.adapter.selectNodeById(nodeId);
+	node.x = 0;
+	node.y = 0;
+	newView.addNode( node );
+	newView.addPlaceholder( node );
+	newView.saveNodePosition(node);
+
+
+
+	var nodosvista = newView.getNodeData();	    
+	nodosvista[nodeId]['open-view'] = id;
+	newView.saveNodeData(nodosvista);
+
+
+	newView.setConfig({physics_mode: true});
+}
+
 function nodeIdResource(id){
 	var nodeId = $tm.adapter.getId(id);
 	
@@ -47,25 +69,8 @@ function nodeIdResource(id){
 
 
 		//Create vist and insert the node in the new vist.
-		var label = id.replace(/.*\/(.*)/g,"$1");
-		var newView = new $tm.ViewAbstraction(label,{ isCreate: true});
-		newView.setConfig({physics_mode: true });
-
-		var node = $tm.adapter.selectNodeById(nodeId);
-		node.x = 0;
-		node.y = 0;
-		newView.addNode( node );
-		newView.addPlaceholder( node );
-		newView.saveNodePosition(node);
-
-
-
-		var nodosvista = newView.getNodeData();	    
-		nodosvista[nodeId]['open-view'] = id;
-		newView.saveNodeData(nodosvista);
-
-
-		newView.setConfig({physics_mode: true});
+		//var label = id.replace(/.*\/(.*)/g,"$1");
+		//createView(id, label);
 
 	}
 	return nodeId;
@@ -76,7 +81,7 @@ function nodeIdResource(id){
 /*
 * 
 */
-function addObjectInSubjectView( subject, property, object){
+function addObjectInSubjectView( subject, object){
 	//Get the tilddy resource object
 	let nodeObjectId = nodeIdResource(object);
 	let nodeObject = $tm.adapter.selectNodeById(nodeObjectId);
@@ -90,7 +95,42 @@ function addObjectInSubjectView( subject, property, object){
 	/*
 	* Get the resourse's label and insert node in subject view
 	*/
-	let label = subject.replace(/.*\/(.*)/g,"$1");
+	//let label = subject.replace(/.*\/(.*)/g,"$1");
+	let label = JSON.parse($tw.wiki.getTiddlerAsJson(subject)).label;
+	if ( typeof label != "undefined" ){
+		let viewSubject = new $tm.ViewAbstraction(label,{ isCreate: true});
+		viewSubject.addNode( nodeObject );
+		viewSubject.addPlaceholder( nodeObject );
+		viewSubject.saveNodePosition( nodeObject );
+
+		let nodosvista = viewSubject.getNodeData();	    
+		nodosvista[nodeObjectId]['open-view'] = object;
+		viewSubject.saveNodeData(nodosvista);
+	}
+}
+
+
+
+
+/*
+* 
+*/
+function addObjectInSubjectViewProperty( subject, property, object){
+	//Get the tilddy resource object
+	let nodeObjectId = nodeIdResource(object);
+	let nodeObject = $tm.adapter.selectNodeById(nodeObjectId);
+	let subjectId = nodeIdResource(subject)
+
+	//Set la x y del nodo antes de agregarlo en la vista
+	//Resta investigar como impacata en otras vistas cuadno 
+	nodeObject.x = 0;
+	nodeObject.y = 0;
+
+	/*
+	* Get the resourse's label and insert node in subject view
+	*/
+	//let label = subject.replace(/.*\/(.*)/g,"$1");
+	let label = JSON.parse($tw.wiki.getTiddlerAsJson(subject)).label;
 	let viewSubject = new $tm.ViewAbstraction(label,{ isCreate: true});
 	viewSubject.addNode( nodeObject );
 	viewSubject.addPlaceholder( nodeObject );
@@ -135,7 +175,7 @@ function sentenceProcess(subject , property , object){
 		case "@id":
 			nodeIdResource(subject);
 		break;
-		case "http://www.w3.org/2000/01/rdf-schema#comment": 
+		case "http://www.w3.org/2000/01/rdf-schema#comment": case "sctf:Description.term.en-gb.synonym":
 			//podria ser definido como un js independiente.
 			var textComment = "";
 			object.forEach( function( ocommept ){
@@ -144,19 +184,32 @@ function sentenceProcess(subject , property , object){
 			$tw.wiki.setText(subject,"comments",0,textComment,"")
 			break;
 		case "http://www.w3.org/2000/01/rdf-schema#label":
+			createView(subject,object[0]["@value"]);
 			let nodeLabel = object[0]["@value"];
 			$tw.wiki.setText(subject,"label",0,nodeLabel,"");
 			$tw.wiki.setText(subject,"caption",0,nodeLabel,"");
 			break;
-		case "http://purl.org/dc/elements/1.1/tittle": case "http://purl.org/dc/elements/1.1/title" :
+		case "http://purl.org/dc/elements/1.1/tittle": case "http://purl.org/dc/elements/1.1/title": case "sctf:Description.term.en-gb.preferred" :
 			let nodeDescription = object[0]["@value"];
 			$tw.wiki.setText(subject,"description",0,nodeDescription,"");
 			break;
 		case "http://www.w3.org/2000/01/rdf-schema#subClassOf" :
-
-			addObjectInSubjectView( subject, "http://www.w3.org/2000/01/rdf-schema#subClassOf", object[0]["@id"])			
-
-			break;
+			object.forEach( function (reference){
+				//Get the tilddy resource object
+				//var nodeObjectId = nodeIdResource(reference["@id"]);
+				
+				var subClassOf;
+				if ( typeof JSON.parse($tw.wiki.getTiddlerAsJson(subject)).subClassOf === "undefined" ) {
+					subClassOf = reference["@id"];
+				}else{
+					subClassOf = JSON.parse($tw.wiki.getTiddlerAsJson(subject)).subClassOf + " " +reference["@id"]
+				}
+				$tw.wiki.setText(subject,"subClassOf",0,subClassOf,"");
+				addObjectInSubjectViewProperty( subject, "http://www.w3.org/2000/01/rdf-schema#subClassOf", reference["@id"])			
+				addObjectInSubjectView(reference["@id"],subject);
+				
+			});			
+		break;
 		case "http://www.w3.org/2000/01/rdf-schema#domain" :
 			object.forEach( function (oparameter){
 				/*var nodeNew = { title: oparameter["@id"] ,
@@ -170,6 +223,7 @@ function sentenceProcess(subject , property , object){
 					
 				$tw.wiki.addTiddler(nodeNew);
 				$tm.adapter.assignId(oparameter["@id"]);*/
+				nodeIdResource(oparameter["@id"]);
 				let tags;
 				if ( typeof JSON.parse($tw.wiki.getTiddlerAsJson(oparameter["@id"])).tags === "undefined" ) {
 					tags = subject;
@@ -177,39 +231,9 @@ function sentenceProcess(subject , property , object){
 					tags = JSON.parse($tw.wiki.getTiddlerAsJson(oparameter["@id"])).tags + " " +subject
 				}
 				$tw.wiki.setText(oparameter["@id"],"tags",0,tags,"");
+				//Podria ya estar definida.
 				$tw.wiki.setText(oparameter["@id"],"text",0,$tw.wiki.getTiddler("$:/linekedhealth/parameter_view").fields.text,"");
 
-			});
-			
-		break;
-		case "http://www.w3.org/2002/07/owl#allValuesFrom" :
-				//Get the tilddy resource object
-				//let nodeObjectId = nodeIdResource(object[0]["@id"]);
-				let tags;
-				if ( typeof JSON.parse($tw.wiki.getTiddlerAsJson(object[0]["@id"])).tags === "undefined" ) {
-					tags = subject;
-				}else{
-					tags = JSON.parse($tw.wiki.getTiddlerAsJson(object[0]["@id"])).tags + " " +subject
-				}
-				$tw.wiki.setText(object[0]["@id"],"tags",0,tags,"");				
-				let subjectTo = subject.replace(/(.*)\..*/g,"$1");
-				addObjectInSubjectView( subjectTo, subject, object[0]["@id"]);	
-		break;
-		case "http://www.w3.org/2002/07/owl#someValuesFrom" :
-			object.forEach( function (reference){
-				//Get the tilddy resource object
-				//var nodeObjectId = nodeIdResource(reference["@id"]);
-				
-				var tags;
-				if ( typeof JSON.parse($tw.wiki.getTiddlerAsJson(reference["@id"])).tags === "undefined" ) {
-					tags = subject;
-				}else{
-					tags = JSON.parse($tw.wiki.getTiddlerAsJson(reference["@id"])).tags + " " +subject
-				}
-				$tw.wiki.setText(reference["@id"],"tags",0,tags,"");				
-				var subjectTo = subject.replace(/(.*)\..*/g,"$1");
-				addObjectInSubjectView( subjectTo, subject, reference["@id"]);	
-				
 			});
 			
 		break;
@@ -224,12 +248,44 @@ function sentenceProcess(subject , property , object){
 					tags = JSON.parse($tw.wiki.getTiddlerAsJson(typeNode["@id"])).tags + " " +subject
 				}
 				$tw.wiki.setText(typeNode["@id"],"tags",0,tags,"");				
-				//var subjectTo = subject.replace(/(.*)\..*/g,"$1");
-				//addObjectInSubjectView( subjectTo, subject, typeNode["@id"]);
-		});	
+				/*JSON.parse($tw.wiki.getTiddlerAsJson(subject)).tags.forEach( function (concept){
+					addObjectInSubjectView( concept, subject, typeNode["@id"]);
+				});*/
+			});	
 		
 		break;
-
+		case "http://www.w3.org/2002/07/owl#allValuesFrom" :
+				//Get the tilddy resource object
+				//let nodeObjectId = nodeIdResource(object[0]["@id"]);
+				let tags;
+				if ( typeof JSON.parse($tw.wiki.getTiddlerAsJson(object[0]["@id"])).tags === "undefined" ) {
+					tags = subject;
+				}else{
+					tags = JSON.parse($tw.wiki.getTiddlerAsJson(object[0]["@id"])).tags + " " +subject
+				}
+				$tw.wiki.setText(object[0]["@id"],"tags",0,tags,"");				
+				let subjectTo = subject.replace(/(.*)\..*/g,"$1");
+				addObjectInSubjectViewProperty( subjectTo, subject, object[0]["@id"]);	
+		break;
+		case "http://www.w3.org/2002/07/owl#someValuesFrom" :
+			object.forEach( function (reference){
+				//Get the tilddy resource object
+				//var nodeObjectId = nodeIdResource(reference["@id"]);
+				
+				var tags;
+				if ( typeof JSON.parse($tw.wiki.getTiddlerAsJson(reference["@id"])).tags === "undefined" ) {
+					tags = subject;
+				}else{
+					tags = JSON.parse($tw.wiki.getTiddlerAsJson(reference["@id"])).tags + " " +subject
+				}
+				$tw.wiki.setText(reference["@id"],"tags",0,tags,"");				
+				var subjectTo = subject.replace(/(.*)\..*/g,"$1");
+				addObjectInSubjectViewProperty( subjectTo, subject, reference["@id"]);	
+				
+			});
+			
+		break;
+		
 		default:
 			//console.log("--------------------Default-----------------");
 			//console.log("id : " + subject + ", property : " + property + ", object : " + object);
@@ -259,6 +315,7 @@ exports.startup = function(callback) {
 
 			});
 			$tw.wiki.deleteTiddler(nodeName);
+			$tw.syncer.syncToServer();
 
 			//No lo esta borrando del servidor ?
 		}); 

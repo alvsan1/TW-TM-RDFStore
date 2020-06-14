@@ -28,6 +28,10 @@ exports.startup = function(callback) {
 				$tw.syncer.syncFromServer();
 				console.log("--------------------- Sync -----------------------")
 			},5000);
+			setTimeout(function() {
+				$tw.syncer.syncFromServer();
+				console.log("--------------------- Sync -----------------------")
+			},200);
 		});
 	});
 

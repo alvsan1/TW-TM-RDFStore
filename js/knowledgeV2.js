@@ -12,7 +12,7 @@ module-type: startup
 
 exports.name = "knowledgeV2";
 exports.platforms = ["node"];
-exports.after = ["lhmacro"];
+exports.after = ["story"];
 exports.synchronous = true;
 
 
@@ -83,6 +83,8 @@ exports.startup = function(callback) {
                         if (JSON.parse($tw.wiki.getTiddlerAsJson(changeStory))['know'] == "true" ) { 
                             console.log("------------------- Change Story ------------------------");
                             $tw.wiki.setText(changeStory,"know",0,"false","");
+                            //console.log($tw.wiki.getTiddler(config.sparqll2));
+                            //console.log($tw.wiki.getTiddlerAsJson(config.sparqll2));
                             var queryKw = $tw.wiki.getTiddler(config.sparqll2).fields.text.replace(/##ConceptTW##/g,"<"+changeStory+">");
                             console.log(queryKw);
                             
@@ -94,7 +96,7 @@ exports.startup = function(callback) {
                                 //SI NO SE REQUIERE ACUTALIZACION MEJORA EL USO DE LA HERRAMIENTA
                                 console.log("-----------------Fin 2do nivel----------------------/n");
                             });
-                            $tw.syncer.syncToServer();
+                            
                         }
                     }
 
