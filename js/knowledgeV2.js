@@ -49,7 +49,7 @@ exports.startup = function(callback) {
 
             $tw.wiki.addEventListener("change",function(changes) {
 
-                console.log(JSON.stringify(changes));
+                //console.log(JSON.stringify(changes));
                 /*
                 if ( JSON.parse(JSON.stringify(changes))["$:/plugins/felixhayashi/tiddlymap/misc/defaultViewHolder"] ){
                     console.log("-----------------Actualizando----------------------/n");
@@ -77,11 +77,11 @@ exports.startup = function(callback) {
                 if ( JSON.parse(JSON.stringify(changes))["$:/StoryList"] ){
                     let changeStory = $tw.utils.parseStringArray(JSON.parse($tw.wiki.getTiddlerAsJson("$:/StoryList")).list)[0];
                     let patt = /Draft of/;
-                    console.log("------------------- Change Story -----" + changeStory +"-------------------")
+                    //console.log("------------------- Change Story -----" + changeStory +"-------------------")
                     if ( ! patt.test(changeStory) ){
                         $tw.wiki.getTiddlerAsJson(changeStory).know;
                         if (JSON.parse($tw.wiki.getTiddlerAsJson(changeStory))['know'] == "true" ) { 
-                            console.log("------------------- Change Story ------------------------");
+                            //console.log("------------------- Change Story ------------------------");
                             $tw.wiki.setText(changeStory,"know",0,"false","");
                             //console.log($tw.wiki.getTiddler(config.sparqll2));
                             //console.log($tw.wiki.getTiddlerAsJson(config.sparqll2));
@@ -91,10 +91,13 @@ exports.startup = function(callback) {
                             client.get(config.rdfstorage+ "?query=" + encodeURIComponent(queryKw),args, function (dataV, responseV) {   
                                 var nodeKw = { title: "Kn__" + changeStory , concepts: JSON.stringify(JSON.parse(dataV)), newkn: true };
                                 $tw.wiki.addTiddler(nodeKw);
-                                
+                                setTimeout(function() {
+                                    //$tw.wiki.deleteTiddler(nodeKw.title);
+                                },5000);
+
 
                                 //SI NO SE REQUIERE ACUTALIZACION MEJORA EL USO DE LA HERRAMIENTA
-                                console.log("-----------------Fin 2do nivel----------------------/n");
+                                //console.log("-----------------Fin 2do nivel----------------------/n");
                             });
                             
                         }
