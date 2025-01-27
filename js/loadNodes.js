@@ -17,7 +17,7 @@ Object.defineProperty(exports, "__esModule", {
 // Export name and synchronous status
 exports.name = "loadNodes";
 exports.platforms = ["browser"];
-exports.after = ["story1"];
+exports.after = ["story_no"];
 exports.synchronous = true;
 
 exports.startup = function(callback) {
@@ -594,8 +594,7 @@ exports.startup = function(callback) {
 			nodosvista[nodeId]['open-view'] = ct.description.value;
 			myView.saveNodeData(nodosvista);
 
-
-		
+				
 			if ( ct.property.value == "http://www.w3.org/2000/01/rdf-schema#subClassOf" ) {
 				JSON.parse(ct.oconcepts.value).forEach( function( oconcept ){
 					

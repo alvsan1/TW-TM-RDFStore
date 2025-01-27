@@ -17,7 +17,7 @@ Object.defineProperty(exports, "__esModule", {
 // Export name and synchronous status
 exports.name = "loadNodes";
 exports.platforms = ["browser"];
-exports.after = ["story"];
+exports.after = ["story_no"];
 exports.synchronous = true;
 
 
@@ -35,7 +35,8 @@ function createView(id, label){
 
 
 
-	var nodosvista = newView.getNodeData();	    
+	var nodosvista = newView.getNodeData();	   
+	//Todo : Comentar esta sentencia y representar en el diagrama 
 	nodosvista[nodeId]['open-view'] = id;
 	newView.saveNodeData(nodosvista);
 
@@ -128,7 +129,7 @@ function addObjectInSubjectView( subject, object){
 
 
 /*
-* 
+* Agrega el nodo a la vista y crea la relación
 */
 function addObjectInSubjectViewProperty( subject, property, object){
 	//Get the tilddy resource object
@@ -137,7 +138,7 @@ function addObjectInSubjectViewProperty( subject, property, object){
 	let subjectId = nodeIdResource(subject)
 
 	//Set la x y del nodo antes de agregarlo en la vista
-	//Resta investigar como impacata en otras vistas cuadno 
+	//Resta investigar como impacata en otras vistas 
 	nodeObject.x = 0;
 	nodeObject.y = 0;
 
@@ -186,21 +187,27 @@ function sentenceProcess(subject , property , object){
 
 	//var nodeId = nodeIdResource(subject);
 	
+	console.log("Subject : " + subject )
+	console.log("Property : " + property )
+	console.log("Object : " + object )
+	console.log("ObjectJSON : " + JSON.stringify(object ))
+
 	switch( property){
 		case "@id":
 			nodeIdResource(subject);
 		break;
-		case "http://www.w3.org/2000/01/rdf-schema#comment": case "http://snomed.info/field/Description.term.en-gb.synonym": 
+		case "rdfs:comment": case "field/Description.term.en-us.synonym": 
 			//podria ser definido como un js independiente.
 			var textComment = "";
-			object.forEach( function( ocommept ){
-				textComment += "# " + ocommept["@value"] + " <br>";
-			});
+			//object.forEach( function( ocommept ){
+			//	textComment += "# " + ocommept["@value"] + " <br>";
+			//});
+			textComment += "# " + object["@value"] + " <br>";
 			$tw.wiki.setText(subject,"comments",0,textComment,"")
 			break;
-		case "http://www.w3.org/2000/01/rdf-schema#label":
-			createView(subject,object[0]["@value"]);
-			let nodeLabel = object[0]["@value"];
+		case "rdfs:label":
+			createView(subject,object["@value"]);
+			let nodeLabel = object["@value"];
 			$tw.wiki.setText(subject,"label",0,nodeLabel,"");
 			$tw.wiki.setText(subject,"caption",0,nodeLabel,"");
 
@@ -210,28 +217,39 @@ function sentenceProcess(subject , property , object){
 			});
 			
 			break;
-		case "http://purl.org/dc/elements/1.1/tittle": case "http://purl.org/dc/elements/1.1/title": case "http://snomed.info/field/Description.term.en-gb.preferred" :
-			let nodeDescription = object[0]["@value"];
+		case "dc:tittle": case "dc:title": case "field/Description.term.en-us.preferred" :
+			let nodeDescription = object["@value"];
 			$tw.wiki.setText(subject,"description",0,nodeDescription,"");
 			break;
-		case "http://www.w3.org/2000/01/rdf-schema#subClassOf" :
-			object.forEach( function (reference){
+		case "rdfs:subClassOf" :
+			//object.forEach( function (reference){
 				//Get the tilddy resource object
+
 				//var nodeObjectId = nodeIdResource(reference["@id"]);
 				
 				var subClassOf;
 				if ( typeof JSON.parse($tw.wiki.getTiddlerAsJson(subject)).subClassOf === "undefined" ) {
-					subClassOf = reference["@id"];
+					subClassOf = object["@id"];
 				}else{
-					subClassOf = JSON.parse($tw.wiki.getTiddlerAsJson(subject)).subClassOf + " " +reference["@id"]
+					subClassOf = JSON.parse($tw.wiki.getTiddlerAsJson(subject)).subClassOf + " " +object["@id"]
 				}
 				$tw.wiki.setText(subject,"subclassof",0,subClassOf,"");
-				addObjectInSubjectViewProperty( subject, "http://www.w3.org/2000/01/rdf-schema#subClassOf", reference["@id"])			
-				addObjectInSubjectView(reference["@id"],subject);
+				addObjectInSubjectViewProperty( subject, "http://www.w3.org/2000/01/rdf-schema#subClassOf", object["@id"])			
+				addObjectInSubjectView(object["@id"],subject);
 				
-			});			
+
+				console.log("----------------------subject--------------------------")
+				console.log(subject)
+				console.log("----------------------object[@id]--------------------------")
+				console.log(object["@id"])
+				console.log("----------------------subClassOf--------------------------")
+				console.log(subClassOf)
+				console.log("----------------------object[@id]--------------------------")
+				console.log(object["@id"])
+
+			//});			
 		break;
-		case "http://www.w3.org/2000/01/rdf-schema#domain" :
+		case "rdfs:domain" :
 			object.forEach( function (oparameter){
 				/*var nodeNew = { title: oparameter["@id"] ,
 									 know: false,
@@ -258,7 +276,9 @@ function sentenceProcess(subject , property , object){
 			});
 			
 		break;
-		case "http://www.w3.org/2000/01/rdf-schema#range" :
+		case "rdfs:range" :
+			console.log(object)
+			console.log(object)
 			object.forEach( function (typeNode){
 				//var nodeObjectId = nodeIdResource(typeNode["@id"]);
 				
@@ -275,7 +295,7 @@ function sentenceProcess(subject , property , object){
 			});	
 		
 		break;
-		case "http://www.w3.org/2002/07/owl#allValuesFrom" :
+		case "owl:allValuesFrom" :
 				//Get the tilddy resource object
 				//let nodeObjectId = nodeIdResource(object[0]["@id"]);
 				let tags;
@@ -284,12 +304,12 @@ function sentenceProcess(subject , property , object){
 				}else{
 					tags = JSON.parse($tw.wiki.getTiddlerAsJson(object[0]["@id"])).tags + " " +subject
 				}
-				$tw.wiki.setText(object[0]["@id"],"tags",0,tags,"");				
+				$tw.wiki.setText(object["@id"],"tags",0,tags,"");				
 				let subjectTo = subject.replace(/(.*)\..*/g,"$1");
 				addObjectInSubjectViewProperty( subjectTo, subject, object[0]["@id"]);	
 		break;
 		
-		case "http://www.w3.org/2002/07/owl#someValuesFrom" :
+		case "owl:someValuesFrom" :
 
 			if (subject.match("_:node.*").length > 0 ){
 				object.forEach( function (reference){
@@ -328,7 +348,7 @@ function sentenceProcess(subject , property , object){
 			}	
 		break;
 
-		case "http://www.w3.org/2002/07/owl#onProperty" :
+		case "owl:onProperty" :
 			object.forEach( function (reference){
 				//Get the tilddy resource object
 				//var nodeObjectId = nodeIdResource(reference["@id"]);
@@ -350,7 +370,7 @@ function sentenceProcess(subject , property , object){
 			});
 			
 		break;
-		case "http://www.w3.org/1999/02/22-rdf-syntax-ns#List" :
+		case "rdf:List" :
 			$tw.wiki.setText(subject,"text",0,$tw.wiki.getTiddler("$:/linekedhealth/node_view").fields.text,"");
 			object.forEach( function (conteiner){
 				//Get the tilddy resource object
@@ -376,8 +396,8 @@ function sentenceProcess(subject , property , object){
 			
 		break;
 		default:
-			//console.log("--------------------Default-----------------");
-			//console.log("id : " + subject + ", property : " + property + ", object : " + object);
+			console.log("--------------------Default-----------------");
+			console.log("id : " + subject + ", property : " + property + ", object : " + object);
 	}
 
 
@@ -386,23 +406,33 @@ function sentenceProcess(subject , property , object){
 
 exports.startup = function(callback) {
 
+	console.log("aca-------------------")
+
 	$tw.wiki.addEventListener("change",function(changes) {
 		var vistas = $tw.wiki.filterTiddlers("[newKn[true]]");
+		//console.log("aca2-------------------")
 		vistas.forEach( function (nodeName) {
-
+			console.log("aca2-------------------" + nodeName + "-----------")
 			var nodeJson = JSON.parse($tw.wiki.getTiddlerAsJson(nodeName));
 			var myView = new $tm.ViewAbstraction(nodeJson.title,{ isCreate: true});
-			
 
-			JSON.parse(nodeJson.concepts).forEach( function(ct){
 
-				
-				Object.keys(ct).forEach( function(param , index) {
+			console.log("nodeJson.title-------------------" + nodeJson.title + "-----------")
+			console.log("****************************nodeJson***********************")
+			if (nodeJson.concepts != "{}"){
+				console.log(JSON.parse(nodeJson.concepts));
+				JSON.parse(nodeJson.concepts)['@graph'].forEach( function(ct){
+					console.log("aca3-------------------");
+					console.log(ct);
+					//Todo : Se podria sacar del forEach ?
 					var subject = ct["@id"];
-					sentenceProcess( subject, param , ct[param]);
-				}); 
+					Object.keys(ct).forEach( function(param , index) {
+						sentenceProcess( subject, param , ct[param]);
+					}); 
 
-			});
+				});
+			}
+			// To do
 			$tw.wiki.deleteTiddler(nodeName);
 			$tw.syncer.syncToServer();
 
@@ -410,6 +440,7 @@ exports.startup = function(callback) {
 		}); 
 
 
+		//Si cambio la historio y tiene conocimiento pendientede se dispara el analsisi anterior.
 		if ( JSON.parse(JSON.stringify(changes))["$:/StoryList"] ){
                     let changeStory = $tw.utils.parseStringArray(JSON.parse($tw.wiki.getTiddlerAsJson("$:/StoryList")).list)[0];
                     let patt = /Draft of/;
