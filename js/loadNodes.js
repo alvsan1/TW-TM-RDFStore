@@ -1,5 +1,5 @@
 /*\
-title: $:/plugins/alvsan/semantic/js/loadNodesV3
+title: $:/plugins/alvsan/semantic/js/loadNodes
 type: application/javascript
 module-type: startup
 Semantic processing

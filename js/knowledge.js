@@ -1,5 +1,5 @@
 /*\
-title: $:/plugins/alvsan/semantic/knowledgeV2.js
+title: $:/plugins/alvsan/semantic/knowledge
 type: application/javascript
 module-type: startup
 
