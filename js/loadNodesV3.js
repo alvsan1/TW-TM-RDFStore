@@ -108,7 +108,7 @@ function addObjectInSubjectView( subject, object){
 	let subjectId = nodeIdResource(subject)
 
 	//Set la x y del nodo antes de agregarlo en la vista
-	//Resta investigar como impacata en otras vistas cuadno 
+	//Resta investigar como impacata en otras vistas cuando 
 	nodeObject.x = 0;
 	nodeObject.y = 0;
 
