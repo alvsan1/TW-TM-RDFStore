@@ -32,7 +32,7 @@ function createView(id, label){
 	node.x = 0;
 	node.y = 0;
 	newView.addNode( node );
-	newView.addPlaceholder( node );
+	// Todo : newView.addPlaceholder( node );
 	newView.saveNodePosition(node);
 
 
@@ -46,9 +46,11 @@ function createView(id, label){
 	newView.setConfig({physics_mode: true});
 }
 
-function nodeIdResource(id){
+function nodeIdResource(id, graph){
 	console.log("------------------nodeIdResource(id)------------------")
 	console.log(id);
+	console.log(graph);
+	console.log(typeof graph === "undefined");
 	var nodeId = $tm.adapter.getId(id);
 	var config = JSON.parse($tw.wiki.getTiddlerAsJson("Initial Config"));
 	
@@ -62,10 +64,11 @@ function nodeIdResource(id){
 		if (id.match(/_:node/g) == null ){
 			nodeView = { title: id , 
 						 know: true,
-						 text: $tw.wiki.getTiddler(config.conceptView).fields.text , 
+						 text: typeof graph === "undefined" ? $tw.wiki.getTiddler(config.conceptView).fields.text : $tw.wiki.getTiddler("$:/linkedhealth/concept_view/" + graph).fields.text, 
 						 term: "",								 
 						 state: "$:/state/" + id,
-						 default: "$(currentTiddler)"
+						 default: "$(currentTiddler)",
+						 nodeGraph: graph
 						};
 
 		}else{
@@ -101,11 +104,11 @@ function nodeIdResource(id){
 /*
 * 
 */
-function addObjectInSubjectView( subject, object){
+function addObjectInSubjectView( subject, object, graph){
 	//Get the tilddy resource object
-	let nodeObjectId = nodeIdResource(object);
+	let nodeObjectId = nodeIdResource(object, graph);
 	let nodeObject = $tm.adapter.selectNodeById(nodeObjectId);
-	let subjectId = nodeIdResource(subject)
+	let subjectId = nodeIdResource(subject, graph)
 
 	//Set la x y del nodo antes de agregarlo en la vista
 	//Resta investigar como impacata en otras vistas cuando 
@@ -135,12 +138,12 @@ function addObjectInSubjectView( subject, object){
 /*
 * Agrega el nodo a la vista y crea la relación
 */
-function addObjectInSubjectViewProperty( subject, property, object){
+function addObjectInSubjectViewProperty( subject, property, object, graph){
 
 	//Get the tilddy resource object
-	let nodeObjectId = nodeIdResource(object);
+	let nodeObjectId = nodeIdResource(object, graph);
 	let nodeObject = $tm.adapter.selectNodeById(nodeObjectId);
-	let subjectId = nodeIdResource(subject)
+	let subjectId = nodeIdResource(subject, graph)
 
 	//Set la x y del nodo antes de agregarlo en la vista
 	//Resta investigar como impacata en otras vistas 
@@ -155,7 +158,7 @@ function addObjectInSubjectViewProperty( subject, property, object){
 	if ( typeof label != "undefined" ) {
 		let viewSubject = new $tm.ViewAbstraction(label,{ isCreate: true});
 		viewSubject.addNode( nodeObject );
-		viewSubject.addPlaceholder( nodeObject );
+		// Todo viewSubject.addPlaceholder( nodeObject );
 		viewSubject.saveNodePosition( nodeObject );
 
 		let nodosvista = viewSubject.getNodeData();	    
@@ -186,12 +189,12 @@ function addObjectInSubjectViewProperty( subject, property, object){
 /*
 * Agrega los nodos a la vista y crea la relación
 */
-function addRelationsInView( view, subject, property, object){
+function addRelationsInView( view, subject, property, object, graph){
 
 	//Get the tilddy resource object
-	let nodeObjectId = nodeIdResource(object);
+	let nodeObjectId = nodeIdResource(object, graph);
 	let nodeObject = $tm.adapter.selectNodeById(nodeObjectId);
-	let subjectId = nodeIdResource(subject)
+	let subjectId = nodeIdResource(subject, graph)
 
 	//Set la x y del nodo antes de agregarlo en la vista
 	//Resta investigar como impacata en otras vistas 
@@ -238,7 +241,7 @@ function addRelationsInView( view, subject, property, object){
 * @param {string} property - The property de subject in sentence.
 * @param {string} object - The object de subject in sentence.
 */
-function sentenceProcess(subject , property , object){
+function sentenceProcess(subject , property , object, graph){
 
 	//var nodeId = nodeIdResource(subject);
 	console.log("Subject : " + subject + "  ___Property : " + property + "  ___Object : " + object  )
@@ -251,7 +254,7 @@ function sentenceProcess(subject , property , object){
 
 	switch( property){
 		case "@id":
-			nodeIdResource(subject);
+			nodeIdResource(subject, graph);
 		break;
 		case "rdfs:comment": case "field/Description.term.en-us.synonym": 
 			//podria ser definido como un js independiente.
@@ -259,7 +262,11 @@ function sentenceProcess(subject , property , object){
 			//object.forEach( function( ocommept ){
 			//	textComment += "# " + ocommept["@value"] + " <br>";
 			//});
-			textComment += "# " + object["@value"] + " <br>";
+			if ( typeof object["@value"] === "undefined" ){
+				textComment += "# " + object + " <br>";
+			}else{
+				textComment += "# " + object["@value"] + " <br>";
+			}			
 			$tw.wiki.setText(subject,"comments",0,textComment,"")
 			break;
 		case "rdfs:label":
@@ -270,7 +277,7 @@ function sentenceProcess(subject , property , object){
 
 			
 			$tw.wiki.search(subject,{literal: true, invert: false, field: ["subclassof"]}).forEach( function (reference){
-				addObjectInSubjectView( subject, reference )
+				addObjectInSubjectView( subject, reference , graph)
 			});
 			
 			break;
@@ -290,8 +297,8 @@ function sentenceProcess(subject , property , object){
 							subClassOf = JSON.parse($tw.wiki.getTiddlerAsJson(subject)).subClassOf + " " +reference["@id"]
 						}
 						$tw.wiki.setText(subject,"subclassof",0,subClassOf,"");
-						addObjectInSubjectViewProperty( subject, "http://www.w3.org/2000/01/rdf-schema#subClassOf", reference["@id"])			
-						addObjectInSubjectView(reference["@id"],subject);
+						addObjectInSubjectViewProperty( subject, "http://www.w3.org/2000/01/rdf-schema#subClassOf", reference["@id"], graph)			
+						addObjectInSubjectView(reference["@id"],subject, graph);
 					}
 				});
 			}else{
@@ -304,8 +311,8 @@ function sentenceProcess(subject , property , object){
 						subClassOf = JSON.parse($tw.wiki.getTiddlerAsJson(subject)).subClassOf + " " +object["@id"]
 					}
 					$tw.wiki.setText(subject,"subclassof",0,subClassOf,"");
-					addObjectInSubjectViewProperty( subject, "http://www.w3.org/2000/01/rdf-schema#subClassOf", object["@id"])			
-					addObjectInSubjectView(object["@id"],subject);
+					addObjectInSubjectViewProperty( subject, "http://www.w3.org/2000/01/rdf-schema#subClassOf", object["@id"], graph)			
+					addObjectInSubjectView(object["@id"],subject, graph);
 				}
 			}
 
@@ -313,7 +320,7 @@ function sentenceProcess(subject , property , object){
 		case "rdfs:domain" :
 			if(Array.isArray(object)){
 				object.forEach( function (oparameter){
-					nodeIdResource(oparameter["@id"]);
+					nodeIdResource(oparameter["@id"], graph);
 					let tags;
 					if ( typeof JSON.parse($tw.wiki.getTiddlerAsJson(oparameter["@id"])).tags === "undefined" ) {
 						tags = subject;
@@ -326,7 +333,7 @@ function sentenceProcess(subject , property , object){
 
 				});
 			}else{
-				nodeIdResource(object["@id"]);
+				nodeIdResource(object["@id"], graph);
 				let tags;
 				if ( typeof JSON.parse($tw.wiki.getTiddlerAsJson(object["@id"])).tags === "undefined" ) {
 					tags = subject;
@@ -365,7 +372,7 @@ function sentenceProcess(subject , property , object){
 				}
 				$tw.wiki.setText(object["@id"],"tags",0,tags,"");				
 				let subjectTo = subject.replace(/(.*)\..*/g,"$1");
-				addObjectInSubjectViewProperty( subjectTo, subject, object["@id"]);	
+				addObjectInSubjectViewProperty( subjectTo, subject, object["@id"], graph);	
 		break;
 		
 		case "owl:someValuesFrom" :
@@ -389,10 +396,10 @@ function sentenceProcess(subject , property , object){
 					  if (edge.label === "subClassOf") {
 					    fromValue = edge.from;
 					    let fromTiddlerLable = JSON.parse($tw.wiki.getTiddlerAsJson($tm.adapter.getTiddlerById(edge.from))).label;
-						console.log("Subject : " + subject + "  ___Property : " + property + "  ___Object : " + object  )
+						/*console.log("Subject : " + subject + "  ___Property : " + property + "  ___Object : " + object  )
 						console.log("ObjectJSON : " + JSON.stringify(object ))
-						console.log("fromTiddlerLable : " + fromTiddlerLable )
-					    addRelationsInView( fromTiddlerLable, subject, property, object["@id"])
+						console.log("fromTiddlerLable : " + fromTiddlerLable )*/
+					    addRelationsInView( fromTiddlerLable, subject, property, object["@id"], graph)
 
 					  }
 					}
@@ -421,7 +428,7 @@ function sentenceProcess(subject , property , object){
 						console.log("Subject : " + subject + "  ___Property : " + property + "  ___Object : " + object  )
 						console.log("ObjectJSON : " + JSON.stringify(object ))
 						console.log("fromTiddlerLable : " + fromTiddlerLable )
-					    addRelationsInView( fromTiddlerLable, subject, property, object["@id"])
+					    addRelationsInView( fromTiddlerLable, subject, property, object["@id"], graph)
 
 					  }
 					}
@@ -464,7 +471,7 @@ function sentenceProcess(subject , property , object){
 					}
 					$tw.wiki.setText(reference["@id"],"tags",0,tags,"");				
 					var subjectTo = subject.replace(/(.*)\..*/g,"$1");
-					addObjectInSubjectViewProperty( subjectTo, subject, reference["@id"]);	
+					addObjectInSubjectViewProperty( subjectTo, subject, reference["@id"], graph);	
 					
 				});
 			}	
@@ -528,7 +535,7 @@ function sentenceProcess(subject , property , object){
 					console.log("Subject : " + subject + "  ___Property : " + property + "  ___Object : " + object  )
 					console.log("ObjectJSON : " + JSON.stringify(object ))
 					console.log("fromTiddlerLable : " + fromTiddlerLable )
-				    addRelationsInView( fromTiddlerLable, subject, property, object["@id"])
+				    addRelationsInView( fromTiddlerLable, subject, property, object["@id"], graph)
 
 				  }
 				}
@@ -588,8 +595,8 @@ function sentenceProcess(subject , property , object){
 						subClassOf = JSON.parse($tw.wiki.getTiddlerAsJson(subject)).subClassOf + " " +reference["@id"]
 					}
 					$tw.wiki.setText(subject,"disjointWith",0,subClassOf,"");
-					addObjectInSubjectViewProperty( subject, "http://www.w3.org/2002/07/owl#disjointWith", reference["@id"])			
-					addObjectInSubjectView(reference["@id"],subject);
+					addObjectInSubjectViewProperty( subject, "http://www.w3.org/2002/07/owl#disjointWith", reference["@id"], graph)			
+					addObjectInSubjectView(reference["@id"],subject, graph);
 				});
 			}else{
 				var subClassOf;
@@ -599,8 +606,8 @@ function sentenceProcess(subject , property , object){
 					subClassOf = JSON.parse($tw.wiki.getTiddlerAsJson(subject)).subClassOf + " " +object["@id"]
 				}
 				$tw.wiki.setText(subject,"disjointWith",0,subClassOf,"");
-				addObjectInSubjectViewProperty( subject, "http://www.w3.org/2002/07/owl#disjointWith", object["@id"])			
-				addObjectInSubjectView(object["@id"],subject);
+				addObjectInSubjectViewProperty( subject, "http://www.w3.org/2002/07/owl#disjointWith", object["@id"], graph)			
+				addObjectInSubjectView(object["@id"],subject, graph);
 			}
 
 		break;
@@ -618,17 +625,19 @@ exports.startup = function(callback) {
 	console.log("aca-------------------")
 
 	$tw.wiki.addEventListener("change",function(changes) {
-		var vistas = $tw.wiki.filterTiddlers("[newKn[true]]");
+		var vistas = $tw.wiki.filterTiddlers("[newkn[true]]");
+		console.log("=========================  Vistas  ==============================");
+		console.log(vistas);
 		vistas.forEach( function (nodeName) {
 			var nodeJson = JSON.parse($tw.wiki.getTiddlerAsJson(nodeName));
-		
+			console.log(nodeJson);
 			if (nodeJson.concepts != "{}"){
 				if (JSON.parse(nodeJson.concepts)['@graph']){
 					JSON.parse(nodeJson.concepts)['@graph'].forEach( function(ct){
 						//Todo : Se podria sacar del forEach ?
 						var subject = ct["@id"];
 						Object.keys(ct).forEach( function(param , index) {
-							sentenceProcess( subject, param , ct[param]);
+							sentenceProcess( subject, param , ct[param], nodeJson.nodeGraph);
 						}); 
 
 					});
@@ -636,7 +645,8 @@ exports.startup = function(callback) {
 			}
 			// To do
 			$tw.wiki.deleteTiddler(nodeName);
-			$tw.syncer.syncToServer();
+			// Todo : $tw.syncer.syncToServer();
+			$tw.syncer.handleRefreshEvent();
 
 			//No lo esta borrando del servidor ?
 		}); 
@@ -644,22 +654,22 @@ exports.startup = function(callback) {
 
 		//Si cambio la historio y tiene conocimiento pendientede se dispara el analsisi anterior.
 		if ( JSON.parse(JSON.stringify(changes))["$:/StoryList"] ){
-                    let changeStory = $tw.utils.parseStringArray(JSON.parse($tw.wiki.getTiddlerAsJson("$:/StoryList")).list)[0];
-                    let patt = /Draft of/;
-                    if ( ! patt.test(changeStory) ){
-                        $tw.wiki.getTiddlerAsJson(changeStory).know;
-                        if (JSON.parse($tw.wiki.getTiddlerAsJson(changeStory))['know'] == "true" ) {
-                        	setTimeout(function() {
-								$tw.syncer.syncFromServer();
-								console.log("++++++++++++++++++++ Sync ++++++++++++++++++");
-							},5000);
-							setTimeout(function() {
-								$tw.syncer.syncFromServer();
-								console.log("++++++++++++++++++++ Sync2 ++++++++++++++++++");
-							},20);
-                        }
-                    }
+      let changeStory = $tw.utils.parseStringArray(JSON.parse($tw.wiki.getTiddlerAsJson("$:/StoryList")).list)[0];
+      let patt = /Draft of/;
+      if ( ! patt.test(changeStory) ){
+        $tw.wiki.getTiddlerAsJson(changeStory).know;
+        if (JSON.parse($tw.wiki.getTiddlerAsJson(changeStory))['know'] == "true" ) {
+         	setTimeout(function() {
+						$tw.syncer.syncFromServer();
+						console.log("++++++++++++++++++++ Sync ++++++++++++++++++");
+					},5000);
+					setTimeout(function() {
+							$tw.syncer.syncFromServer();
+							console.log("++++++++++++++++++++ Sync2 ++++++++++++++++++");
+					},20);
         }
+      }
+    }
 
 /*
 		*/
